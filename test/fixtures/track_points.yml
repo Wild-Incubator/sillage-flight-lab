@@ -1,0 +1,45 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  jump: one
+  recorded_at: 2026-05-15 20:02:00
+  elapsed_seconds: 1.5
+  lat: 1.5
+  lon: 1.5
+  altitude_m: 1.5
+  vel_n_mps: 1.5
+  vel_e_mps: 1.5
+  vel_d_mps: 1.5
+  horizontal_accuracy_m: 1.5
+  vertical_accuracy_m: 1.5
+  speed_accuracy_mps: 1.5
+  heading_deg: 1.5
+  course_accuracy_deg: 1.5
+  gps_fix: 1
+  satellite_count: 1
+  horizontal_speed_mps: 1.5
+  vertical_speed_mps: 1.5
+  glide_ratio: 1.5
+  distance_from_start_m: 1.5
+
+two:
+  jump: two
+  recorded_at: 2026-05-15 20:02:00
+  elapsed_seconds: 1.5
+  lat: 1.5
+  lon: 1.5
+  altitude_m: 1.5
+  vel_n_mps: 1.5
+  vel_e_mps: 1.5
+  vel_d_mps: 1.5
+  horizontal_accuracy_m: 1.5
+  vertical_accuracy_m: 1.5
+  speed_accuracy_mps: 1.5
+  heading_deg: 1.5
+  course_accuracy_deg: 1.5
+  gps_fix: 1
+  satellite_count: 1
+  horizontal_speed_mps: 1.5
+  vertical_speed_mps: 1.5
+  glide_ratio: 1.5
+  distance_from_start_m: 1.5

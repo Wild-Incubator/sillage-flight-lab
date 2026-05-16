@@ -1,0 +1,21 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  source_filename: MyString
+  status: imported
+  device_id: MyString
+  firmware_version: MyString
+  session_id: MyString
+  log_started_at: 2026-05-15 20:01:59
+  error_message: MyText
+  details: 
+
+two:
+  source_filename: MyString
+  status: imported
+  device_id: MyString
+  firmware_version: MyString
+  session_id: MyString
+  log_started_at: 2026-05-15 20:01:59
+  error_message: MyText
+  details: 

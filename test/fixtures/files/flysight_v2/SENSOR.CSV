@@ -1,0 +1,21 @@
+$FLYS,1
+$VAR,FIRMWARE_VER,v2026.01.test
+$VAR,DEVICE_ID,fixture-device
+$VAR,SESSION_ID,fixture-session
+$COL,BARO,time,pressure,temperature
+$UNIT,BARO,s,Pa,deg C
+$COL,IMU,time,wx,wy,wz,ax,ay,az,temperature
+$UNIT,IMU,s,deg/s,deg/s,deg/s,g,g,g,deg C
+$COL,TIME,time,tow,week
+$UNIT,TIME,s,s,
+$COL,VBAT,time,voltage
+$UNIT,VBAT,s,volt
+$DATA
+$TIME,0.0,534000.0,2310
+$BARO,0.0,61200.0,18.2
+$IMU,0.0,0.0,0.0,0.0,0.01,0.02,1.01,18.4
+$VBAT,0.0,4.1
+$BARO,5.0,62500.0,18.0
+$IMU,5.0,0.2,0.1,0.3,0.03,0.04,1.10,18.3
+$BARO,10.0,64000.0,17.9
+$IMU,10.0,0.3,0.1,0.4,0.04,0.04,1.12,18.2

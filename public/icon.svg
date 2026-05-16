@@ -1,0 +1,18 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Sillage">
+  <defs>
+    <linearGradient id="bg" x1="80" y1="80" x2="432" y2="432" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0D2C29"/>
+      <stop offset="1" stop-color="#071817"/>
+    </linearGradient>
+    <linearGradient id="trace" x1="121" y1="350" x2="395" y2="142" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E85D4F"/>
+      <stop offset=".52" stop-color="#D89122"/>
+      <stop offset="1" stop-color="#28BFB8"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="96" fill="url(#bg)"/>
+  <path d="M126 347c44-92 106-143 186-153 30-4 55-18 74-43" fill="none" stroke="url(#trace)" stroke-width="34" stroke-linecap="round"/>
+  <path d="M146 365h144" stroke="#A7C83F" stroke-width="24" stroke-linecap="round"/>
+  <path d="M146 365V219" stroke="#28BFB8" stroke-width="24" stroke-linecap="round"/>
+  <circle cx="386" cy="151" r="27" fill="#D89122"/>
+</svg>

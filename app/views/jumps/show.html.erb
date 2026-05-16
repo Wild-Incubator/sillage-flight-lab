@@ -1,0 +1,139 @@
+<% content_for :title, @jump.name %>
+<% content_for :head do %>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cesium@1.124.0/Build/Cesium/Widgets/widgets.css">
+<% end %>
+
+<section class="page-heading">
+  <div>
+    <p class="eyebrow"><%= l(@jump.display_started_at, format: :long) %></p>
+    <h1><%= @jump.name %></h1>
+  </div>
+  <%= link_to t("jumps.show.back"), jumps_path, class: "secondary-button" %>
+</section>
+
+<section class="metric-strip">
+  <div><span><%= t("stats.duration") %></span><strong><%= duration(@jump.duration_seconds) %></strong></div>
+  <div><span><%= t("stats.distance") %></span><strong><%= meters(@jump.distance_m) %></strong></div>
+  <div><span><%= t("stats.altitude") %></span><strong><%= meters(@jump.altitude_loss_m) %></strong></div>
+  <div><span><%= t("stats.hspeed") %></span><strong><%= speed_ms(@jump.max_horizontal_speed_mps) %></strong></div>
+  <div><span><%= t("stats.vspeed") %></span><strong><%= speed_ms(@jump.max_vertical_speed_mps) %></strong></div>
+  <div><span><%= t("stats.glide") %></span><strong><%= glide(@jump.avg_glide_ratio) %></strong></div>
+</section>
+
+<div
+  data-controller="flight-viewer"
+  data-flight-viewer-points-value="<%= json_escape(@visualization_points.to_json) %>"
+  data-flight-viewer-sensors-value="<%= json_escape(@visualization_sensors.to_json) %>"
+  data-flight-viewer-bounds-value="<%= json_escape(@bounds.to_json) %>"
+  data-flight-viewer-cesium-token-value="<%= @cesium_ion_token %>"
+  data-flight-viewer-labels-value="<%= json_escape(t("jumps.charts").to_json) %>">
+  <section class="trajectory">
+    <div class="trajectory-header">
+      <h2><%= t("jumps.show.trajectory") %></h2>
+      <div class="trajectory-toolbar">
+        <button
+          type="button"
+          class="trajectory-icon-button trajectory-play-button"
+          data-flight-viewer-target="playButton"
+          data-action="flight-viewer#togglePlayback"
+          aria-label="<%= t("jumps.charts.play") %>"
+          title="<%= t("jumps.charts.play") %>">
+          <span class="play-toggle-icon" aria-hidden="true"></span>
+        </button>
+        <output data-flight-viewer-target="timeLabel" class="trajectory-time">00:00</output>
+        <button
+          type="button"
+          class="trajectory-icon-button trajectory-reset-button"
+          data-action="flight-viewer#resetCamera"
+          aria-label="<%= t("jumps.charts.reset_camera") %>"
+          title="<%= t("jumps.charts.reset_camera") %>">
+          <span class="camera-reset-icon" aria-hidden="true"></span>
+        </button>
+      </div>
+    </div>
+    <div data-flight-viewer-target="scene" class="trajectory-scene"></div>
+    <input data-flight-viewer-target="scrubber" data-action="input->flight-viewer#scrub" class="scrubber" type="range" min="0" max="1000" value="0">
+  </section>
+
+  <section class="charts-grid">
+    <div class="tool-panel chart-panel">
+      <h2><%= t("jumps.charts.profile") %></h2>
+      <canvas data-flight-viewer-target="profileChart" class="analysis-chart"></canvas>
+    </div>
+
+    <div class="tool-panel chart-panel">
+      <h2><%= t("jumps.charts.ground") %></h2>
+      <canvas data-flight-viewer-target="groundChart" class="analysis-chart"></canvas>
+    </div>
+
+    <div class="tool-panel chart-panel">
+      <h2><%= t("jumps.charts.performance") %></h2>
+      <canvas data-flight-viewer-target="performanceChart" class="analysis-chart"></canvas>
+    </div>
+
+    <% if @sensor_counts["IMU"].present? %>
+      <div class="tool-panel chart-panel wide-chart">
+        <h2><%= t("jumps.charts.dynamics") %></h2>
+        <canvas data-flight-viewer-target="dynamicsChart" class="analysis-chart"></canvas>
+      </div>
+    <% end %>
+
+    <% if @sensor_counts["BARO"].present? %>
+      <div class="tool-panel chart-panel">
+        <h2><%= t("jumps.charts.environment") %></h2>
+        <canvas data-flight-viewer-target="environmentChart" class="analysis-chart"></canvas>
+      </div>
+    <% end %>
+
+    <% if @sensor_counts["VBAT"].present? %>
+      <div class="tool-panel chart-panel">
+        <h2><%= t("jumps.charts.power") %></h2>
+        <canvas data-flight-viewer-target="powerChart" class="analysis-chart"></canvas>
+      </div>
+    <% end %>
+  </section>
+</div>
+
+<section class="content-split">
+  <div class="tool-panel">
+    <h2><%= t("jumps.show.details") %></h2>
+    <%= form_with model: @jump, class: "details-form" do |form| %>
+      <%= form.label :name, t("jumps.form.name") %>
+      <%= form.text_field :name %>
+
+      <%= form.label :location, t("jumps.form.location") %>
+      <%= form.text_field :location %>
+
+      <%= form.label :exit_at, t("jumps.form.exit_at") %>
+      <%= form.datetime_field :exit_at, value: @jump.exit_at&.strftime("%Y-%m-%dT%H:%M:%S") %>
+
+      <%= form.label :opening_at, t("jumps.form.opening_at") %>
+      <%= form.datetime_field :opening_at, value: @jump.opening_at&.strftime("%Y-%m-%dT%H:%M:%S") %>
+
+      <%= form.label :landing_at, t("jumps.form.landing_at") %>
+      <%= form.datetime_field :landing_at, value: @jump.landing_at&.strftime("%Y-%m-%dT%H:%M:%S") %>
+
+      <%= form.label :notes, t("jumps.form.notes") %>
+      <%= form.text_area :notes, rows: 4 %>
+
+      <%= form.submit t("jumps.form.save"), class: "primary-button" %>
+    <% end %>
+  </div>
+
+  <div class="panel-stack">
+    <div class="tool-panel">
+    <h2><%= t("jumps.show.samples") %></h2>
+      <dl class="details-grid">
+        <div><dt>GNSS</dt><dd><%= @jump.sample_count %></dd></div>
+        <% @sensor_counts.each do |sensor, count| %>
+          <div><dt><%= sensor %></dt><dd><%= count %></dd></div>
+        <% end %>
+      </dl>
+    </div>
+
+    <div class="tool-panel danger-panel">
+      <h2><%= t("jumps.show.danger") %></h2>
+      <%= button_to t("jumps.show.delete"), @jump, method: :delete, class: "danger-button", form: { data: { turbo_confirm: t("jumps.show.confirm_delete") } } %>
+    </div>
+  </div>
+</section>

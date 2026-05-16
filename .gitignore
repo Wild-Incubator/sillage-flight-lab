@@ -1,0 +1,26 @@
+# Local environment
+.env*
+!.env.example
+
+# Rails credentials key
+/config/master.key
+
+# Databases and local runtime state
+/storage/*
+!/storage/.keep
+/tmp/*
+!/tmp/.keep
+!/tmp/pids/
+/tmp/pids/*
+!/tmp/pids/.keep
+/log/*
+!/log/.keep
+
+# Dependencies and generated assets
+/node_modules/
+/vendor/bundle/
+/public/assets/
+
+# OS/editor noise
+.DS_Store
+*.swp
