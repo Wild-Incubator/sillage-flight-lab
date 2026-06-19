@@ -1,0 +1,274 @@
+<% content_for :title, t("design_system.title") %>
+
+<section class="reference-hero">
+  <div class="reference-hero-copy">
+    <p class="eyebrow"><%= t("design_system.eyebrow") %></p>
+    <h1><%= t("design_system.title") %></h1>
+    <p>
+      A working reference for Exopter's product language: matte carbon, exact
+      telemetry, restrained signal colors, and Sillage components that stay
+      useful under operational pressure.
+    </p>
+    <div class="reference-mode-row" aria-label="Program modes">
+      <span>GLD</span>
+      <span>EPW</span>
+      <span>JPW</span>
+    </div>
+  </div>
+
+  <figure class="reference-hero-media">
+    <%= image_tag "exopter-wing-reference.jpeg", alt: "Matte black Exopter rigid wing with white wordmark in a grass test field" %>
+    <figcaption>Current physical reference: matte wing, white mark, sky and field context.</figcaption>
+  </figure>
+</section>
+
+<section class="reference-section">
+  <div class="section-header">
+    <p class="eyebrow">Foundation</p>
+    <h2>Color Tokens</h2>
+  </div>
+
+  <div class="reference-swatch-grid">
+    <% [
+      [ "--ex-carbon-950", "#070B0D", "Primary carbon" ],
+      [ "--ex-carbon-900", "#10181A", "Instrument panel" ],
+      [ "--ex-carbon-800", "#182426", "Raised dark surface" ],
+      [ "--ex-graphite-600", "#5F6C6B", "Secondary text" ],
+      [ "--ex-vapor-50", "#F5F8F6", "Light workbench" ],
+      [ "--ex-vapor-100", "#E5ECE9", "Divider surface" ],
+      [ "--ex-sky-500", "#2EA8FF", "Route and link" ],
+      [ "--ex-field-500", "#4F7B4E", "Ground readiness" ],
+      [ "--ex-aqua-500", "#2FD6C6", "Live telemetry" ],
+      [ "--ex-hud-green", "#8CFF4D", "HUD ready" ],
+      [ "--ex-amber-500", "#F2A23A", "Caution" ],
+      [ "--ex-red-600", "#E63B35", "Fault" ]
+    ].each do |token, value, role| %>
+      <article class="reference-swatch-card">
+        <span class="reference-swatch" style="--swatch-color: <%= value %>"></span>
+        <strong><%= token %></strong>
+        <span><%= value %></span>
+        <p><%= role %></p>
+      </article>
+    <% end %>
+  </div>
+</section>
+
+<section class="reference-section reference-two-column">
+  <div class="reference-panel">
+    <p class="eyebrow">Typography</p>
+    <h2>Operational Type</h2>
+    <div class="reference-type-stack">
+      <p class="reference-display">Trajectory Workshop</p>
+      <p class="reference-heading">Verify GLD flight readiness</p>
+      <p class="reference-body">
+        Concise operational copy, stable rem sizes, tabular numerals, and no
+        cockpit cosplay outside true instrument surfaces.
+      </p>
+      <p class="reference-mono">T0+6 / GPS 20HZ / ALT 3,420 M / V 214 KM/H</p>
+    </div>
+  </div>
+
+  <div class="reference-panel">
+    <p class="eyebrow">Shape</p>
+    <h2>System Geometry</h2>
+    <dl class="reference-token-list">
+      <div>
+        <dt>Base grid</dt>
+        <dd>4px</dd>
+      </div>
+      <div>
+        <dt>Surface radius</dt>
+        <dd>8px</dd>
+      </div>
+      <div>
+        <dt>Instrument radius</dt>
+        <dd>4px</dd>
+      </div>
+      <div>
+        <dt>Page width</dt>
+        <dd>1220px max</dd>
+      </div>
+    </dl>
+  </div>
+</section>
+
+<section class="reference-section">
+  <div class="section-header">
+    <p class="eyebrow">States</p>
+    <h2>Readiness Language</h2>
+  </div>
+
+  <div class="reference-readiness-strip">
+    <span class="reference-state is-ready">FDR ready</span>
+    <span class="reference-state is-live">Telemetry live</span>
+    <span class="reference-state is-pending">BMS pending</span>
+    <span class="reference-state is-caution">Weather caution</span>
+    <span class="reference-state is-fault">Sensor fault</span>
+    <span class="reference-state is-unknown">TCAS unknown</span>
+  </div>
+</section>
+
+<section class="reference-section">
+  <div class="section-header">
+    <p class="eyebrow">Migration</p>
+    <h2>Implementation Checklist 2-6</h2>
+  </div>
+
+  <div class="reference-check-grid">
+    <article class="reference-panel">
+      <div class="reference-panel-header">
+        <span>02</span>
+        <strong>Done</strong>
+      </div>
+      <h2>Token Package</h2>
+      <p class="reference-muted">Exopter colors, type, spacing, radius, shadows, and states now live in <code>exopter_design_system.css</code>.</p>
+    </article>
+
+    <article class="reference-panel">
+      <div class="reference-panel-header">
+        <span>03</span>
+        <strong>Done</strong>
+      </div>
+      <h2>Sillage Bridge</h2>
+      <p class="reference-muted">Legacy <code>--ds-*</code> tokens now map to Exopter roles so existing Flight Lab screens move as one system.</p>
+    </article>
+
+    <article class="reference-panel">
+      <div class="reference-panel-header">
+        <span>04</span>
+        <strong>Done</strong>
+      </div>
+      <h2>Component Set</h2>
+      <p class="reference-muted">Header, readiness strip, metric tiles, telemetry charts, checklist, requirement row, and trajectory surface are represented here and in app screens.</p>
+    </article>
+
+    <article class="reference-panel">
+      <div class="reference-panel-header">
+        <span>05</span>
+        <strong>Done</strong>
+      </div>
+      <h2>Reference Page</h2>
+      <p class="reference-muted">This page is the live devreference surface for tokens, components, states, HUD language, and photo usage.</p>
+    </article>
+
+    <article class="reference-panel">
+      <div class="reference-panel-header">
+        <span>06</span>
+        <strong>Done</strong>
+      </div>
+      <h2>Public Direction</h2>
+      <p class="reference-muted">Public brand pages should lead with the real wing, operational proof, and restrained product claims after the app language is stable.</p>
+    </article>
+  </div>
+</section>
+
+<section class="reference-section reference-component-grid">
+  <article class="reference-panel reference-hud-panel">
+    <div class="reference-panel-header">
+      <span>HUD / GLD</span>
+      <strong>READY</strong>
+    </div>
+    <div class="reference-hud-metrics">
+      <div>
+        <span>GLIDE</span>
+        <strong>3.8</strong>
+      </div>
+      <div>
+        <span>SPEED</span>
+        <strong>214</strong>
+      </div>
+      <div>
+        <span>ALT</span>
+        <strong>3420</strong>
+      </div>
+    </div>
+    <p class="reference-hud-alert">Waypoint cylinder armed. Terrain clear.</p>
+  </article>
+
+  <article class="reference-panel">
+    <div class="reference-panel-header">
+      <span>Mode Switcher</span>
+      <strong>EPW</strong>
+    </div>
+    <div class="reference-segmented" aria-label="Example mode switcher">
+      <span>GLD</span>
+      <span class="is-selected">EDF</span>
+      <span>JET</span>
+    </div>
+    <p class="reference-muted">Mode labels stay visible; color never carries the state alone.</p>
+  </article>
+
+  <article class="reference-panel">
+    <div class="reference-panel-header">
+      <span>Metric Tiles</span>
+      <strong>Live</strong>
+    </div>
+    <div class="reference-mini-metrics">
+      <div>
+        <span>Distance</span>
+        <strong>10.8 km</strong>
+      </div>
+      <div>
+        <span>Battery</span>
+        <strong>82%</strong>
+      </div>
+      <div>
+        <span>Temp</span>
+        <strong>37 C</strong>
+      </div>
+    </div>
+  </article>
+
+  <article class="reference-panel">
+    <div class="reference-panel-header">
+      <span>Checklist</span>
+      <strong>4/5</strong>
+    </div>
+    <ol class="reference-checklist">
+      <li><span class="is-ready"></span>FDR storage mounted</li>
+      <li><span class="is-ready"></span>Helmet intercom paired</li>
+      <li><span class="is-ready"></span>Wing GPS acquired</li>
+      <li><span class="is-caution"></span>Weather review required</li>
+    </ol>
+  </article>
+</section>
+
+<section class="reference-section reference-two-column">
+  <div class="reference-panel reference-table-panel">
+    <p class="eyebrow">Requirements</p>
+    <h2>Traceability Row</h2>
+    <table class="reference-table">
+      <thead>
+        <tr>
+          <th>Ref</th>
+          <th>Requirement</th>
+          <th>Mode</th>
+          <th>State</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>HUD-03</td>
+          <td>Fail-safe screen goes black, never white.</td>
+          <td>GLD/EPW/JET</td>
+          <td><span class="reference-state is-ready">Specified</span></td>
+        </tr>
+        <tr>
+          <td>FDR-41</td>
+          <td>Record flight data and upload to Sillage.</td>
+          <td>All</td>
+          <td><span class="reference-state is-live">Active</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="reference-panel reference-source-panel">
+    <p class="eyebrow">Source</p>
+    <h2>Design System Doc</h2>
+    <p>
+      The canonical written reference lives in <code>web/docs/design-system.md</code>.
+      Keep this page aligned with that file as tokens and components mature.
+    </p>
+  </div>
+</section>

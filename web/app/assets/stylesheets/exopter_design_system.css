@@ -1,0 +1,53 @@
+:root {
+  color-scheme: light;
+  --ex-font-sans: "Aptos", Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --ex-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+
+  --ex-carbon-950: #070b0d;
+  --ex-carbon-900: #10181a;
+  --ex-carbon-800: #182426;
+  --ex-carbon-700: #243133;
+  --ex-graphite-600: #5f6c6b;
+  --ex-graphite-500: #71817e;
+  --ex-line-200: #d4dfdc;
+  --ex-line-300: #aebfba;
+  --ex-vapor-50: #f5f8f6;
+  --ex-vapor-100: #e5ece9;
+  --ex-vapor-150: #dce8e5;
+  --ex-white: #ffffff;
+
+  --ex-sky-500: #2ea8ff;
+  --ex-field-500: #4f7b4e;
+  --ex-aqua-500: #2fd6c6;
+  --ex-hud-green: #8cff4d;
+  --ex-amber-500: #f2a23a;
+  --ex-red-600: #e63b35;
+  --ex-violet-500: #6658c7;
+
+  --ex-state-ready-bg: rgba(140, 255, 77, 0.18);
+  --ex-state-ready-text: #315a26;
+  --ex-state-live-bg: rgba(47, 214, 198, 0.14);
+  --ex-state-live-text: #00615b;
+  --ex-state-pending-bg: #e5ece9;
+  --ex-state-pending-text: #5f6c6b;
+  --ex-state-caution-bg: rgba(242, 162, 58, 0.16);
+  --ex-state-caution-text: #7a4b0a;
+  --ex-state-fault-bg: rgba(230, 59, 53, 0.12);
+  --ex-state-fault-text: #b42318;
+
+  --ex-space-1: 4px;
+  --ex-space-2: 8px;
+  --ex-space-3: 12px;
+  --ex-space-4: 16px;
+  --ex-space-5: 20px;
+  --ex-space-6: 24px;
+  --ex-space-8: 32px;
+  --ex-space-10: 40px;
+  --ex-space-12: 48px;
+
+  --ex-radius-instrument: 4px;
+  --ex-radius-surface: 8px;
+  --ex-shadow-raised: 0 18px 42px rgba(16, 24, 26, 0.12);
+  --ex-shadow-panel: 0 10px 28px rgba(16, 24, 26, 0.08);
+  --ex-page-width: min(1220px, calc(100vw - 36px));
+}

@@ -1,0 +1,44 @@
+<% content_for :title, t("imports.show.title") %>
+
+<section class="page-heading">
+  <div>
+    <p class="eyebrow"><%= t("imports.show.eyebrow") %></p>
+    <h1><%= @flight_import.source_filename %></h1>
+  </div>
+  <strong class="status <%= @flight_import.status %>"><%= t("imports.status.#{@flight_import.status}") %></strong>
+</section>
+
+<section class="flight-readiness-strip compact" aria-label="<%= t("flight_lab.import_status_label") %>">
+  <div>
+    <span><%= t("flight_lab.import_state") %></span>
+    <strong><%= t("imports.status.#{@flight_import.status}") %></strong>
+  </div>
+  <div>
+    <span><%= t("flight_lab.device") %></span>
+    <strong><%= @flight_import.device_id.presence || t("flight_lab.unknown") %></strong>
+  </div>
+  <div>
+    <span><%= t("flight_lab.created_jumps") %></span>
+    <strong><%= @jumps.size %></strong>
+  </div>
+</section>
+
+<section class="tool-panel wide">
+  <dl class="details-grid">
+    <div><dt><%= t("imports.show.device") %></dt><dd><%= @flight_import.device_id.presence || "-" %></dd></div>
+    <div><dt><%= t("imports.show.firmware") %></dt><dd><%= @flight_import.firmware_version.presence || "-" %></dd></div>
+    <div><dt><%= t("imports.show.session") %></dt><dd><%= @flight_import.session_id.presence || "-" %></dd></div>
+    <div><dt><%= t("imports.show.started_at") %></dt><dd><%= l(@flight_import.log_started_at, format: :long) if @flight_import.log_started_at %></dd></div>
+  </dl>
+
+  <% if @flight_import.failed? %>
+    <p class="error-text"><%= @flight_import.error_message %></p>
+  <% end %>
+</section>
+
+<section>
+  <div class="section-header">
+    <h2><%= t("imports.show.jumps") %></h2>
+  </div>
+  <%= render "jumps/list", jumps: @jumps %>
+</section>

@@ -1,0 +1,26 @@
+<% content_for :title, t("jumps.index.title") %>
+
+<section class="page-heading">
+  <div>
+    <p class="eyebrow"><%= t("jumps.index.eyebrow") %></p>
+    <h1><%= t("jumps.index.title") %></h1>
+  </div>
+  <%= link_to t("nav.import"), new_flight_import_path, class: "primary-button" %>
+</section>
+
+<section class="flight-readiness-strip compact" aria-label="<%= t("flight_lab.logbook_label") %>">
+  <div>
+    <span><%= t("flight_lab.mode") %></span>
+    <strong><%= t("flight_lab.mode_gld") %></strong>
+  </div>
+  <div>
+    <span><%= t("stats.jumps") %></span>
+    <strong><%= @jumps.size %></strong>
+  </div>
+  <div>
+    <span><%= t("flight_lab.analysis") %></span>
+    <strong><%= t("flight_lab.replay_ready") %></strong>
+  </div>
+</section>
+
+<%= render "jumps/list", jumps: @jumps %>

@@ -1,0 +1,27 @@
+<% content_for :title, t("imports.new.title") %>
+
+<section class="page-heading">
+  <div>
+    <p class="eyebrow"><%= t("imports.new.eyebrow") %></p>
+    <h1><%= t("imports.new.title") %></h1>
+  </div>
+</section>
+
+<section class="flight-readiness-strip compact" aria-label="<%= t("flight_lab.import_label") %>">
+  <div>
+    <span><%= t("flight_lab.mode") %></span>
+    <strong><%= t("flight_lab.mode_gld") %></strong>
+  </div>
+  <div>
+    <span><%= t("flight_lab.trace_source") %></span>
+    <strong><%= t("flight_lab.source_flysight") %></strong>
+  </div>
+  <div>
+    <span><%= t("flight_lab.format") %></span>
+    <strong><%= t("flight_lab.format_zip_csv") %></strong>
+  </div>
+</section>
+
+<div class="tool-panel wide">
+  <%= render "shared/upload_form" %>
+</div>
