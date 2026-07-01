@@ -171,8 +171,10 @@ module FlySight
     def create_jump!(flight_import, parsed_session, index)
       metrics = Jumps::TrackMetrics.new(parsed_session.track_points)
       points = metrics.prepared_points
-      bounds = Jumps::DetectBounds.new(points).call
+      analysis = Jumps::FlightAnalysis.new(track_points: points, sensor_samples: parsed_session.sensor_samples).call
+      bounds = analysis.bounds
       summary = metrics.summary(points, sensor_count: parsed_session.sensor_samples.size, bounds: bounds)
+        .merge(analysis_summary(analysis))
 
       jump = flight_import.jumps.create!(
         {
@@ -183,6 +185,21 @@ module FlySight
       insert_track_points(jump, points)
       insert_sensor_samples(jump, parsed_session.sensor_samples)
       jump
+    end
+
+    def analysis_summary(analysis)
+      {
+        min_altitude_m: analysis.altitude_min,
+        max_altitude_m: analysis.altitude_max,
+        altitude_loss_m: altitude_loss(analysis),
+        duration_seconds: analysis.duration_seconds
+      }.compact
+    end
+
+    def altitude_loss(analysis)
+      return nil unless analysis.altitude_min && analysis.altitude_max
+
+      analysis.altitude_max - analysis.altitude_min
     end
 
     def insert_track_points(jump, points)

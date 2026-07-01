@@ -86,6 +86,9 @@
     <span class="replay-kit-id"><%= flight_code(@jump) %></span>
     <span class="mode-badge is-gld">GLD</span>
     <span class="mode-badge is-neutral">Replay</span>
+    <% if @flight_analysis.degraded? %>
+      <span class="mode-badge is-caution"><%= t("jumps.analysis.degraded_badge") %></span>
+    <% end %>
     <div class="replay-kit-spacer"></div>
     <button class="secondary-button replay-kit-action" type="button">
       <%= sillage_icon "activity", size: 18 %>
@@ -185,6 +188,7 @@
     data-flight-viewer-points-value="<%= json_escape(@visualization_points.to_json) %>"
     data-flight-viewer-sensors-value="<%= json_escape(@visualization_sensors.to_json) %>"
     data-flight-viewer-bounds-value="<%= json_escape(@bounds.to_json) %>"
+    data-flight-viewer-analysis-value="<%= json_escape(@analysis.to_json) %>"
     data-flight-viewer-cesium-token-value="<%= @cesium_ion_token %>"
     data-flight-viewer-labels-value="<%= json_escape(t("jumps.charts").to_json) %>"
     <% if @jump.video_exit_offset_seconds.present? %>
@@ -207,6 +211,13 @@
       <div data-flight-viewer-target="scene" class="trajectory-scene"></div>
       <input data-flight-viewer-target="scrubber" data-action="input->flight-viewer#scrub" class="scrubber" type="range" min="0" max="1000" value="0">
     </section>
+
+    <% if @flight_analysis.degraded? %>
+      <section class="analysis-mode-banner" aria-label="<%= t("jumps.analysis.degraded_badge") %>">
+        <strong><%= t("jumps.analysis.degraded_title") %></strong>
+        <span><%= @flight_analysis.reason %></span>
+      </section>
+    <% end %>
 
     <section class="tool-panel video-sync">
       <div class="video-sync-header">
@@ -258,6 +269,7 @@
       <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.profile") %></h2><canvas data-flight-viewer-target="profileChart" class="analysis-chart"></canvas></div>
       <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.ground") %></h2><canvas data-flight-viewer-target="groundChart" class="analysis-chart"></canvas></div>
       <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.performance") %></h2><canvas data-flight-viewer-target="performanceChart" class="analysis-chart"></canvas></div>
+      <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.motion") %></h2><canvas data-flight-viewer-target="motionChart" class="analysis-chart"></canvas></div>
       <div class="tool-panel chart-panel wide-chart"><h2><%= t("jumps.charts.dynamics") %></h2><canvas data-flight-viewer-target="dynamicsChart" class="analysis-chart"></canvas></div>
       <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.environment") %></h2><canvas data-flight-viewer-target="environmentChart" class="analysis-chart"></canvas></div>
       <div class="tool-panel chart-panel"><h2><%= t("jumps.charts.power") %></h2><canvas data-flight-viewer-target="powerChart" class="analysis-chart"></canvas></div>

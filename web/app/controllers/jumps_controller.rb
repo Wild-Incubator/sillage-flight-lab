@@ -15,14 +15,17 @@ class JumpsController < ApplicationController
     @sensor_samples = sampled_sensor_samples(limit_per_type: 1_200)
     @sensor_counts = @jump.sensor_samples.group(:sensor_type).count
     @ground_altitude_m = @jump.min_altitude_m || @track_points.filter_map(&:altitude_m).min
-    @visualization_points = @track_points.map { |point| serialize_point(point) }
-    @visualization_sensors = @sensor_samples.map { |sample| serialize_sensor_sample(sample) }
+    @flight_analysis = Jumps::FlightAnalysis.new(
+      track_points: @track_points,
+      sensor_samples: @sensor_samples,
+      origin_time: @jump.started_at
+    ).call
+    @analysis = analysis_payload(@flight_analysis)
+    @replay_elapsed_range = replay_elapsed_range(@flight_analysis)
+    @visualization_points = @track_points.select { |point| in_replay_window?(point.elapsed_seconds) }.map { |point| serialize_point(point) }
+    @visualization_sensors = @sensor_samples.select { |sample| in_replay_window?(sensor_elapsed_seconds(sample)) }.map { |sample| serialize_sensor_sample(sample) }
     @cesium_ion_token = cesium_ion_token
-    @bounds = {
-      exit: elapsed_for(@jump.exit_at),
-      opening: elapsed_for(@jump.opening_at),
-      landing: elapsed_for(@jump.landing_at)
-    }.compact
+    @bounds = bounds_payload(@flight_analysis.bounds)
   end
 
   def update
@@ -149,10 +152,13 @@ class JumpsController < ApplicationController
   end
 
   def serialize_sensor_sample(sample)
+    readings = sample.readings || {}
+    readings = readings.merge("pressure_altitude_m" => pressure_altitude(readings["pressure"])) if sample.sensor_type == "BARO" && readings["pressure_altitude_m"].blank?
+
     {
       type: sample.sensor_type,
-      t: sample.elapsed_seconds&.round(3),
-      readings: sample.readings || {}
+      t: sensor_elapsed_seconds(sample)&.round(3),
+      readings: readings
     }
   end
 
@@ -160,6 +166,49 @@ class JumpsController < ApplicationController
     return nil unless altitude && @ground_altitude_m
 
     [ altitude.to_f - @ground_altitude_m.to_f, 0.0 ].max
+  end
+
+  def sensor_elapsed_seconds(sample)
+    return sample.recorded_at - @jump.started_at if sample.recorded_at && @jump.started_at
+
+    sample.elapsed_seconds
+  end
+
+  def pressure_altitude(pressure)
+    return nil if pressure.blank?
+
+    pressure = pressure.to_f
+    44_330.0 * (1.0 - (pressure / 101_325.0)**0.190294957)
+  end
+
+  def analysis_payload(analysis)
+    analysis.to_h.except(:bounds).merge(
+      timeline_start: analysis.timeline_start&.round(3),
+      timeline_end: analysis.timeline_end&.round(3),
+      replay_start: analysis.replay_start&.round(3),
+      replay_end: analysis.replay_end&.round(3),
+      altitude_min: analysis.altitude_min&.round(3),
+      altitude_max: analysis.altitude_max&.round(3)
+    )
+  end
+
+  def replay_elapsed_range(analysis)
+    analysis.replay_start..analysis.replay_end
+  end
+
+  def in_replay_window?(elapsed_seconds)
+    return true unless @replay_elapsed_range
+    return false unless elapsed_seconds
+
+    @replay_elapsed_range.cover?(elapsed_seconds.to_f)
+  end
+
+  def bounds_payload(bounds)
+    {
+      exit: elapsed_for(bounds[:exit_at]),
+      opening: elapsed_for(bounds[:opening_at]),
+      landing: elapsed_for(bounds[:landing_at])
+    }.compact
   end
 
   def elapsed_for(timestamp)

@@ -25,12 +25,17 @@ class FlysightImportFlowTest < ActionDispatch::IntegrationTest
     assert_select ".replay-kit-metrics span", text: "Altitude"
     assert_select ".trajectory-scene"
     assert_select ".video-sync"
+    assert_select "canvas[data-flight-viewer-target='motionChart']"
     assert_select "canvas.analysis-chart", minimum: 6
 
     viewer = css_select("[data-controller='flight-viewer']").first
     points = JSON.parse(viewer["data-flight-viewer-points-value"])
+    analysis = JSON.parse(viewer["data-flight-viewer-analysis-value"])
     assert_in_delta 802.0, points.first["height"]
     assert_in_delta 0.0, points.last["height"]
+    assert_equal "gps", analysis["mode"]
+    assert_equal "gps", analysis["altitude_source"]
+    assert points.all? { |point| point["t"] >= analysis["replay_start"] && point["t"] <= analysis["replay_end"] }
   end
 
   test "dashboard renders the Sillage logbook" do

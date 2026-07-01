@@ -6,6 +6,7 @@ export default class extends Controller {
     "profileChart",
     "groundChart",
     "performanceChart",
+    "motionChart",
     "dynamicsChart",
     "environmentChart",
     "powerChart",
@@ -21,6 +22,7 @@ export default class extends Controller {
     points: Array,
     sensors: Array,
     bounds: Object,
+    analysis: Object,
     cesiumToken: String,
     labels: Object,
     videoExitOffset: Number
@@ -32,9 +34,14 @@ export default class extends Controller {
       Number.isFinite(Number(point.lon)) &&
       Number.isFinite(Number(point.alt))
     )
-    this.groundAltitude = this.groundAltitudeFromPoints()
+    this.analysis = this.hasAnalysisValue ? this.analysisValue : {}
+    this.sensors = this.sensorsValue
+      .map((sample) => this.normalizedSensorSample(sample))
+      .filter((sample) => Number.isFinite(Number(sample.t)))
+      .sort((a, b) => this.number(a.t) - this.number(b.t))
+    this.sensors = this.enrichedSensorSamples(this.sensors)
+    this.groundAltitude = this.groundAltitudeFromAnalysis()
     this.points = this.points.map((point) => ({ ...point, height: this.heightFromGround(point) }))
-    this.sensors = this.sensorsValue.filter((sample) => Number.isFinite(Number(sample.t)))
     this.charts = []
     this.renderFrame = null
     this.boundSceneHandlers = []
@@ -43,8 +50,9 @@ export default class extends Controller {
     this.cesiumOrbitHome = null
     this.cesiumDrag = null
     this.cesiumVisualPoints = null
-    this.flightDuration = this.durationFromPoints()
-    this.currentElapsed = 0
+    this.timelineStart = this.timelineStartFromData()
+    this.flightDuration = this.timelineEndFromData()
+    this.currentElapsed = this.timelineStart
     this.isPlaying = false
     this.playbackFrame = null
     this.playbackStartedAt = 0
@@ -63,6 +71,7 @@ export default class extends Controller {
     const chartModule = await import("https://cdn.jsdelivr.net/npm/chart.js@4.4.9/+esm")
 
     this.Chart = chartModule.Chart
+    this.tooltipPosition = this.installTooltipPositioner(chartModule.Tooltip) ? "sillageAwayFromPoint" : "average"
     this.Chart.register(...chartModule.registerables, SILLAGE_BOUNDS_PLUGIN, SILLAGE_PLAYBACK_PLUGIN)
 
     this.setupCharts()
@@ -86,7 +95,7 @@ export default class extends Controller {
 
   scrub(event) {
     this.pausePlayback()
-    this.updateScrubbedElapsed((Number(event.target.value) / 1000) * this.flightDuration)
+    this.updateScrubbedElapsed(this.timelineStart + ((Number(event.target.value) / 1000) * this.timelineSpan()))
   }
 
   togglePlayback() {
@@ -314,20 +323,29 @@ export default class extends Controller {
   }
 
   setupCharts() {
-    if (this.points.length >= 2) {
+    if (this.points.length >= 2 || this.pressureAltitudeRows().length >= 2) {
       this.setupProfileChart()
+    }
+
+    if (this.points.length >= 2) {
       this.setupGroundChart()
       this.setupPerformanceChart()
     }
 
+    this.setupMotionChart()
     this.setupDynamicsChart()
     this.setupEnvironmentChart()
     this.setupPowerChart()
   }
 
   setupProfileChart() {
+    const pressureAltitudeRows = this.pressureAltitudeRows()
+    const altitudeDataset = pressureAltitudeRows.length > 0
+      ? this.sensorDataset("pressure_altitude_m", pressureAltitudeRows, this.label("pressure_altitude"), this.colors.violet, "altitude")
+      : this.dataset(this.label("height"), this.points, "height", this.colors.violet, "altitude")
+
     this.createTimeChart(this.profileChartTarget, [
-      this.dataset(this.label("height"), this.points, "height", this.colors.violet, "altitude"),
+      altitudeDataset,
       this.dataset(this.label("horizontal_speed"), this.points, "hspeed", this.colors.teal, "speed"),
       this.dataset(this.label("vertical_speed"), this.points, "vspeed", this.colors.amber, "speed")
     ], {
@@ -368,6 +386,20 @@ export default class extends Controller {
     ], {
       distance: this.axis("left", this.label("meters")),
       glide: this.axis("right", this.label("ratio"), false)
+    })
+  }
+
+  setupMotionChart() {
+    if (!this.hasMotionChartTarget) return
+
+    const imu = this.sensorRows("IMU")
+    const trajectorySpeedRows = this.trajectorySpeedRows()
+    this.createTimeChart(this.motionChartTarget, [
+      this.sensorDataset("load_factor", imu, this.label("load_factor"), this.colors.coral, "load"),
+      this.dataset(this.label("trajectory_speed"), trajectorySpeedRows, "trajectory_speed", this.colors.aqua, "speed")
+    ], {
+      load: this.axis("left", this.label("g")),
+      speed: this.axis("right", this.label("meters_per_second"), false)
     })
   }
 
@@ -799,7 +831,7 @@ export default class extends Controller {
   }
 
   addCesiumEventMarker(Cesium, viewer, key, elapsed) {
-    const point = this.pointAtElapsed(elapsed, this.cesiumPoints())
+    const point = this.coordinatePointAtElapsed(elapsed, this.cesiumPoints())
     if (!point) return
 
     viewer.entities.add({
@@ -1060,7 +1092,7 @@ export default class extends Controller {
     const end = visualPoints[visualPoints.length - 1]
     const heading = this.flightHeadingRadians(start, end) + Math.PI
     const range = this.cesiumOverviewRange(visualPoints)
-    const focus = this.pointAtElapsed(this.boundsValue.exit, visualPoints) || start
+    const focus = this.coordinatePointAtElapsed(this.boundsValue.exit, visualPoints) || start
 
     this.cesiumOrbitHome = {
       targetPoint: focus,
@@ -1138,6 +1170,7 @@ export default class extends Controller {
       plugins: {
         legend: { labels: { boxWidth: 10, usePointStyle: true } },
         tooltip: {
+          position: this.tooltipPosition,
           callbacks: {
             title: (items) => this.formatTimer(this.chartItemElapsed(items[0]))
           }
@@ -1191,7 +1224,7 @@ export default class extends Controller {
     }
 
     const elapsed = chart.scales?.x?.getValueForPixel(position.x)
-    return Number.isFinite(Number(elapsed)) ? this.clamp(Number(elapsed), 0, this.flightDuration || 0) : null
+    return Number.isFinite(Number(elapsed)) ? this.clamp(Number(elapsed), this.timelineStart, this.flightDuration || 0) : null
   }
 
   chartEventPosition(chart, event) {
@@ -1280,10 +1313,147 @@ export default class extends Controller {
     return this.sensors.filter((sample) => sample.type === type)
   }
 
+  pressureAltitudeRows() {
+    return this.sensorRows("BARO").filter((sample) => Number.isFinite(this.number(sample.readings?.pressure_altitude_m)))
+  }
+
+  trajectorySpeedRows() {
+    const firstGpsTime = this.number(this.points[0]?.t)
+    const pressureRows = this.pressureAltitudeRows()
+      .filter((sample) => !Number.isFinite(firstGpsTime) || this.number(sample.t) < firstGpsTime)
+      .map((sample) => ({
+        t: this.number(sample.t),
+        trajectory_speed: Math.abs(this.number(sample.readings?.pressure_vertical_speed_mps) || 0)
+      }))
+    const gpsRows = this.points.map((point) => {
+      const horizontalSpeed = this.number(point.hspeed)
+      const verticalSpeed = this.number(point.vspeed)
+      if (!Number.isFinite(horizontalSpeed) && !Number.isFinite(verticalSpeed)) return null
+
+      return {
+        t: this.number(point.t),
+        trajectory_speed: Math.sqrt((horizontalSpeed || 0) ** 2 + (verticalSpeed || 0) ** 2)
+      }
+    }).filter(Boolean)
+
+    return this.cleanTrajectorySpeedRows([ ...pressureRows, ...gpsRows ].filter((row) =>
+      Number.isFinite(row.t) && Number.isFinite(row.trajectory_speed)
+    ).sort((a, b) => a.t - b.t))
+  }
+
+  enrichedSensorSamples(samples) {
+    const pressureSpeeds = this.pressureSpeedsBySample(samples)
+
+    return samples.map((sample) => {
+      const readings = { ...(sample.readings || {}) }
+
+      if (sample.type === "IMU") {
+        readings.load_factor = this.loadFactor(readings)
+      }
+
+      if (sample.type === "BARO") {
+        readings.pressure_vertical_speed_mps = pressureSpeeds.get(sample)
+      }
+
+      return { ...sample, readings }
+    })
+  }
+
+  pressureSpeedsBySample(samples) {
+    const baroSamples = samples.filter((sample) =>
+      sample.type === "BARO" &&
+      Number.isFinite(this.number(sample.t)) &&
+      Number.isFinite(this.number(sample.readings?.pressure_altitude_m))
+    )
+    const speeds = new Map()
+
+    baroSamples.forEach((sample, index) => {
+      const speed = this.robustPressureVerticalSpeed(baroSamples, index)
+      if (Number.isFinite(speed)) speeds.set(sample, speed)
+    })
+
+    return speeds
+  }
+
+  robustPressureVerticalSpeed(samples, index) {
+    const centerTime = this.number(samples[index]?.t)
+    if (!Number.isFinite(centerTime)) return null
+
+    const windowRows = samples.filter((sample) => Math.abs(this.number(sample.t) - centerTime) <= 2.0)
+    const slopes = []
+
+    windowRows.forEach((start, startIndex) => {
+      windowRows.slice(startIndex + 1).forEach((finish) => {
+        const startTime = this.number(start.t)
+        const finishTime = this.number(finish.t)
+        const duration = finishTime - startTime
+        if (duration < 0.25) return
+
+        const startAltitude = this.number(start.readings?.pressure_altitude_m)
+        const finishAltitude = this.number(finish.readings?.pressure_altitude_m)
+        if (!Number.isFinite(startAltitude) || !Number.isFinite(finishAltitude)) return
+
+        slopes.push((startAltitude - finishAltitude) / duration)
+      })
+    })
+
+    const speed = this.median(slopes)
+    return this.cleanTrajectorySpeed(speed)
+  }
+
+  cleanTrajectorySpeedRows(rows) {
+    return rows.filter((row) => Number.isFinite(this.cleanTrajectorySpeed(row.trajectory_speed)))
+  }
+
+  cleanTrajectorySpeed(speed) {
+    const value = this.number(speed)
+    if (!Number.isFinite(value)) return null
+    if (Math.abs(value) > 140) return null
+
+    return value
+  }
+
+  median(values) {
+    const sorted = values.filter((value) => Number.isFinite(value)).sort((a, b) => a - b)
+    if (sorted.length === 0) return null
+
+    const middle = Math.floor(sorted.length / 2)
+    return sorted.length % 2 === 1
+      ? sorted[middle]
+      : (sorted[middle - 1] + sorted[middle]) / 2
+  }
+
+  normalizedSensorSample(sample) {
+    const readings = { ...(sample.readings || {}) }
+    if (sample.type === "BARO" && !Number.isFinite(this.number(readings.pressure_altitude_m))) {
+      readings.pressure_altitude_m = this.pressureAltitudeFromPressure(readings.pressure)
+    }
+
+    return { ...sample, readings }
+  }
+
+  loadFactor(readings) {
+    const ax = this.number(readings.ax)
+    const ay = this.number(readings.ay)
+    const az = this.number(readings.az)
+    if (![ ax, ay, az ].every(Number.isFinite)) return null
+
+    return Math.sqrt((ax ** 2) + (ay ** 2) + (az ** 2))
+  }
+
+  pressureAltitudeFromPressure(pressure) {
+    const pressurePa = this.number(pressure)
+    if (!Number.isFinite(pressurePa)) return null
+
+    return 44_330 * (1 - ((pressurePa / 101_325) ** 0.190294957))
+  }
+
   timeAxis() {
     return {
       type: "linear",
       position: "bottom",
+      min: this.timelineStart,
+      max: this.timelineStart + this.timelineSpan(),
       title: { display: true, text: this.label("time") },
       ticks: {
         maxTicksLimit: 8,
@@ -1386,20 +1556,20 @@ export default class extends Controller {
   }
 
   updateScrubbedPoint(ratio) {
-    this.updateScrubbedElapsed(ratio * this.flightDuration)
+    this.updateScrubbedElapsed(this.timelineStart + (ratio * this.timelineSpan()))
   }
 
   updateScrubbedElapsed(elapsed, options = {}) {
     const followCamera = options.followCamera !== false
     const syncVideo = options.syncVideo !== false
-    const clampedElapsed = this.clamp(elapsed || 0, 0, this.flightDuration || 0)
-    const point = this.samplePointAtElapsed(clampedElapsed, this.points)
-    const visualPoint = this.samplePointAtElapsed(clampedElapsed, this.cesiumPoints()) || point
+    const clampedElapsed = this.clamp(elapsed || 0, this.timelineStart, this.flightDuration || 0)
+    const point = this.telemetryPointAtElapsed(clampedElapsed)
+    const visualPoint = this.coordinatePointAtElapsed(clampedElapsed, this.cesiumPoints())
     const coordinate = this.sampleCoordinateAtElapsed(clampedElapsed)
     this.currentElapsed = clampedElapsed
 
-    if (this.hasScrubberTarget && this.flightDuration > 0) {
-      this.scrubberTarget.value = Math.round((clampedElapsed / this.flightDuration) * 1000)
+    if (this.hasScrubberTarget && this.timelineSpan() > 0) {
+      this.scrubberTarget.value = Math.round(((clampedElapsed - this.timelineStart) / this.timelineSpan()) * 1000)
     }
 
     if (visualPoint && this.cesiumMarker && window.Cesium) {
@@ -1499,6 +1669,58 @@ export default class extends Controller {
     }
   }
 
+  installTooltipPositioner(Tooltip) {
+    if (!Tooltip?.positioners) return false
+    if (Tooltip.positioners.sillageAwayFromPoint) return true
+
+    Tooltip.positioners.sillageAwayFromPoint = function(elements, eventPosition) {
+      const element = elements.find((item) => item?.element)?.element
+      const point = element?.tooltipPosition ? element.tooltipPosition() : eventPosition
+      const area = this.chart?.chartArea
+      if (!point || !area) return eventPosition
+
+      const width = this.width || 260
+      const height = this.height || 110
+      const gap = 14
+      const inset = 8
+      const room = {
+        left: point.x - area.left,
+        right: area.right - point.x,
+        top: point.y - area.top,
+        bottom: area.bottom - point.y
+      }
+
+      if (room.right >= width + gap || room.left >= width + gap) {
+        const placeRight = room.right >= width + gap || room.right >= room.left
+
+        return {
+          x: placeRight ? Math.min(point.x + gap, area.right - inset) : Math.max(point.x - gap, area.left + inset),
+          y: clampTooltipAnchor(point.y, area.top + inset, area.bottom - inset),
+          xAlign: placeRight ? "left" : "right",
+          yAlign: tooltipVerticalAlign(point.y, height, room)
+        }
+      }
+
+      if (room.bottom >= height + gap || room.bottom >= room.top) {
+        return {
+          x: clampTooltipAnchor(point.x, area.left + inset, area.right - inset),
+          y: Math.min(point.y + gap, area.bottom - inset),
+          xAlign: "center",
+          yAlign: "top"
+        }
+      }
+
+      return {
+        x: clampTooltipAnchor(point.x, area.left + inset, area.right - inset),
+        y: Math.max(point.y - gap, area.top + inset),
+        xAlign: "center",
+        yAlign: "bottom"
+      }
+    }
+
+    return true
+  }
+
   disposeScene() {
     if (this.group) {
       this.group.traverse((object) => {
@@ -1534,6 +1756,75 @@ export default class extends Controller {
     }, null)
   }
 
+  telemetryPointAtElapsed(elapsed) {
+    const pressurePoint = this.pressureAltitudePointAtElapsed(elapsed)
+    const gpsPoint = this.coordinatePointAtElapsed(elapsed, this.points)
+    const point = gpsPoint || pressurePoint
+    if (!point) return null
+    if (!pressurePoint) return point
+
+    return {
+      ...point,
+      alt: pressurePoint.alt,
+      height: this.heightFromGround(pressurePoint),
+      vspeed: pressurePoint.vspeed ?? point.vspeed
+    }
+  }
+
+  coordinatePointAtElapsed(elapsed, points = this.points) {
+    if (!points?.length || !Number.isFinite(Number(elapsed))) return null
+
+    const firstTime = this.number(points[0].t) ?? 0
+    if (elapsed < firstTime) return null
+
+    return this.samplePointAtElapsed(elapsed, points)
+  }
+
+  pressureAltitudePointAtElapsed(elapsed) {
+    const rows = this.pressureAltitudeRows()
+    if (!rows.length || !Number.isFinite(Number(elapsed))) return null
+
+    const sampled = this.sampleSensorRowsAtElapsed(elapsed, rows, "pressure_altitude_m")
+    if (!sampled) return null
+
+    return {
+      t: elapsed,
+      alt: sampled.value,
+      height: this.heightFromGround({ alt: sampled.value }),
+      vspeed: sampled.row?.readings?.pressure_vertical_speed_mps
+    }
+  }
+
+  sampleSensorRowsAtElapsed(elapsed, rows, key) {
+    if (!rows.length) return null
+
+    const firstTime = this.number(rows[0].t) ?? 0
+    if (elapsed <= firstTime) {
+      return { row: rows[0], value: this.number(rows[0].readings?.[key]) }
+    }
+
+    for (let index = 1; index < rows.length; index += 1) {
+      const previous = rows[index - 1]
+      const next = rows[index]
+      const previousTime = this.number(previous.t) ?? 0
+      const nextTime = this.number(next.t) ?? previousTime
+      if (elapsed > nextTime) continue
+
+      const previousValue = this.number(previous.readings?.[key])
+      const nextValue = this.number(next.readings?.[key])
+      if (!Number.isFinite(previousValue)) return { row: next, value: nextValue }
+      if (!Number.isFinite(nextValue)) return { row: previous, value: previousValue }
+
+      return {
+        row: next,
+        value: this.lerp(previousValue, nextValue, (elapsed - previousTime) / Math.max(nextTime - previousTime, 0.001))
+      }
+    }
+
+    const last = rows[rows.length - 1]
+    return { row: last, value: this.number(last.readings?.[key]) }
+  }
+
   samplePointAtElapsed(elapsed, points = this.points) {
     if (!points?.length) return null
     if (points.length === 1) return { ...points[0], t: elapsed }
@@ -1560,7 +1851,8 @@ export default class extends Controller {
     if (this.coordinates.length === 1) return this.coordinates[0]
 
     const firstTime = this.number(this.points[0]?.t) ?? 0
-    if (elapsed <= firstTime) return this.coordinates[0]
+    if (elapsed < firstTime) return null
+    if (elapsed === firstTime) return this.coordinates[0]
 
     for (let index = 1; index < this.coordinates.length; index += 1) {
       const previousTime = this.number(this.points[index - 1]?.t) ?? 0
@@ -1707,6 +1999,18 @@ export default class extends Controller {
     return Math.min(...altitudes)
   }
 
+  groundAltitudeFromAnalysis() {
+    const altitude = this.number(this.analysis?.altitude_min)
+    if (Number.isFinite(altitude)) return altitude
+
+    const pressureAltitudes = this.pressureAltitudeRows()
+      .map((sample) => this.number(sample.readings?.pressure_altitude_m))
+      .filter((value) => Number.isFinite(value))
+    if (pressureAltitudes.length > 0) return Math.min(...pressureAltitudes)
+
+    return this.groundAltitudeFromPoints()
+  }
+
   heightFromGround(point) {
     const height = this.number(point?.height)
     if (Number.isFinite(height)) return height
@@ -1780,9 +2084,49 @@ export default class extends Controller {
     return Math.max(0, (this.flightDuration || 0) - this.exitElapsed())
   }
 
-  defaultElapsed() {
-    return this.clamp(this.exitElapsed(), 0, this.flightDuration || 0)
+  timelineStartFromData() {
+    const analyzedStart = this.number(this.analysis?.replay_start) ?? this.number(this.analysis?.timeline_start)
+    if (Number.isFinite(analyzedStart)) return analyzedStart
+
+    const values = [
+      ...this.points.map((point) => this.number(point.t)),
+      ...this.sensors.map((sample) => this.number(sample.t))
+    ].filter((value) => Number.isFinite(value))
+
+    return values.length > 0 ? Math.min(...values) : 0
   }
+
+  timelineEndFromData() {
+    const analyzedEnd = this.number(this.analysis?.replay_end) ?? this.number(this.analysis?.timeline_end)
+    const values = [
+      ...this.points.map((point) => this.number(point.t)),
+      ...this.sensors.map((sample) => this.number(sample.t))
+    ].filter((value) => Number.isFinite(value))
+    const fallbackEnd = values.length > 0 ? Math.max(...values) : 0
+    const end = Number.isFinite(analyzedEnd) ? analyzedEnd : fallbackEnd
+
+    return Math.max(end, this.timelineStart)
+  }
+
+  timelineSpan() {
+    return Math.max((this.flightDuration || 0) - (this.timelineStart || 0), 0.001)
+  }
+
+  defaultElapsed() {
+    return this.clamp(this.exitElapsed(), this.timelineStart, this.flightDuration || 0)
+  }
+}
+
+function clampTooltipAnchor(value, min, max) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function tooltipVerticalAlign(pointY, height, room) {
+  const halfHeight = height / 2
+  if (room.top < halfHeight) return "top"
+  if (room.bottom < halfHeight) return "bottom"
+
+  return "center"
 }
 
 const SILLAGE_BOUNDS_PLUGIN = {

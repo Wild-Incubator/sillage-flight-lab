@@ -1832,6 +1832,28 @@ textarea {
   font-size: 0.88rem;
 }
 
+.analysis-mode-banner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 18px;
+  padding: 12px 14px;
+  border: 1px solid rgba(216, 145, 34, 0.34);
+  border-radius: var(--ds-radius);
+  background: rgba(216, 145, 34, 0.1);
+  color: var(--ex-vapor-50);
+  font-size: 0.92rem;
+}
+
+.analysis-mode-banner strong {
+  color: var(--ds-amber);
+  white-space: nowrap;
+}
+
+.analysis-mode-banner span {
+  color: var(--ds-muted);
+}
+
 .scrubber {
   display: block;
   width: 100%;

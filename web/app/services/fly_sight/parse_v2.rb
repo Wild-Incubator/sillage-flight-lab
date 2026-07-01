@@ -1,6 +1,8 @@
 module FlySight
   class ParseV2
     GPS_EPOCH = Time.utc(1980, 1, 6)
+    STANDARD_PRESSURE_PA = 101_325.0
+    PRESSURE_ALTITUDE_EXPONENT = 0.190294957
 
     def initialize(track_text, sensor_text, track_filename: "TRACK.CSV", sensor_filename: "SENSOR.CSV")
       @track_text = track_text.to_s
@@ -105,6 +107,8 @@ module FlySight
         values = columns.zip(row.drop(1)).to_h
         elapsed_seconds = CsvTools.numeric(values["time"])
         readings = values.except("time").transform_values { |value| CsvTools.numeric(value) }
+        readings["sensor_time"] = elapsed_seconds if elapsed_seconds.is_a?(Numeric)
+        readings["pressure_altitude_m"] = pressure_altitude(readings["pressure"]) if sensor == "BARO"
 
         {
           sensor_type: sensor,
@@ -119,8 +123,13 @@ module FlySight
         recorded_at = if sync_origin && sample[:elapsed_seconds]
           sync_origin + sample[:elapsed_seconds]
         end
+        elapsed_seconds = if recorded_at && first_track_time
+          recorded_at - first_track_time
+        else
+          sample[:elapsed_seconds]
+        end
 
-        sample.merge(recorded_at: recorded_at)
+        sample.merge(recorded_at: recorded_at, elapsed_seconds: elapsed_seconds)
       end
     end
 
@@ -139,6 +148,12 @@ module FlySight
         first_elapsed = rows.find { |sample| sample[:elapsed_seconds] }&.fetch(:elapsed_seconds)
         first_elapsed ? first_track_time - first_elapsed : nil
       end
+    end
+
+    def pressure_altitude(pressure)
+      return nil unless pressure.is_a?(Numeric)
+
+      44_330.0 * (1.0 - (pressure / STANDARD_PRESSURE_PA)**PRESSURE_ALTITUDE_EXPONENT)
     end
   end
 end
